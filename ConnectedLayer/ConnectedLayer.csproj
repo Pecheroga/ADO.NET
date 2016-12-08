@@ -39,9 +39,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Base.cs" />
-    <Compile Include="Cars.cs" />
-    <Compile Include="Customers.cs" />
+    <Compile Include="BaseDb.cs" />
+    <Compile Include="CarsDb.cs" />
+    <Compile Include="CustomersDb.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

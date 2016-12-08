@@ -3,7 +3,7 @@
 namespace Ui.Console.Tests
 {
     [TestFixture]
-    internal class ProgramTests
+    internal class UiConsoleTests
     {
         [Test]
         public void MainMenuListTypes()

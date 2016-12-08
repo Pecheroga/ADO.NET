@@ -13,7 +13,8 @@ namespace Ui.Console
         private static readonly object[,] CustomersMenuList;
         private static readonly object[,] CarsMenuList;
         private static readonly string ConnectionString;
-        private static readonly Cars InventoryObj;
+        private static readonly CarsDb CarsDb;
+        private static readonly CustomersDb CustomersDb;
         private static int _carId, _custId;
         private static string _name, _color, _make, _petName;
         private static DataTable _dataTable;
@@ -22,7 +23,8 @@ namespace Ui.Console
         {
             System.Console.ForegroundColor = ConsoleColor.White;
             ConnectionString = "Data Source=(local)\\SQLEXPRESS;Initial Catalog=AutoLot;Integrated Security=True;Pooling=False";
-            InventoryObj = new Cars();
+            CarsDb = new CarsDb();
+            CustomersDb = new CustomersDb();
 
             MainMenuList = new object[3, 3];
             CustomersMenuList = new object[3, 3];
@@ -100,26 +102,25 @@ namespace Ui.Console
 
         private static void ShowCustomers()
         {
-            TryConnectToDb();
-            TryLoadAllFromDbToDataTable("Customers");
+            TryConnectTo(CustomersDb);
+            TryLoadAllToDataTableFrom(CustomersDb, "Customers");
             PrintDataTable();
-            InventoryObj.CloseConnection();
+            CustomersDb.CloseConnection();
         }
-
 
         private static void ShowInventory()
         {
-            TryConnectToDb();
-            TryLoadAllFromDbToDataTable("Inventory");
+            TryConnectTo(CarsDb);
+            TryLoadAllToDataTableFrom(CarsDb, "Inventory");
             PrintDataTable();
-            InventoryObj.CloseConnection();
+            CarsDb.CloseConnection();
         }
 
-        private static void TryLoadAllFromDbToDataTable(string tableDb)
+        private static void TryLoadAllToDataTableFrom(BaseDb baseDb, string tableDb)
         {
             try
             {
-                _dataTable = InventoryObj.GetAllFrom(tableDb);
+                _dataTable = baseDb.GetAllFrom(tableDb);
             }
             catch (Exception exception)
             {
@@ -145,11 +146,11 @@ namespace Ui.Console
         {
             while (true)
             {
-                TryConnectToDb();
+                TryConnectTo(CarsDb);
                 System.Console.WriteLine("Enter new CarId: ");
                 var inputText = GetNotNullOrEmptyInputText();
                 _carId = ParseStringToNumber(inputText);
-                if (InventoryObj.IsPresentId("Inventory", _carId))
+                if (CarsDb.IsPresentId("Inventory", _carId))
                 {
                     PrintErrorText("This id is using. Try again");
                     continue;
@@ -163,8 +164,8 @@ namespace Ui.Console
                 System.Console.WriteLine("Enter new PetName: ");
                 _petName = GetNotNullOrEmptyInputText();
 
-                InventoryObj.InsertAuto(_carId, _name, _color, _make, _petName);
-                InventoryObj.CloseConnection();
+                CarsDb.InsertAuto(_carId, _name, _color, _make, _petName);
+                CarsDb.CloseConnection();
                 PrintOkMessage("You have add new car!");
                 break;
             }
@@ -174,10 +175,10 @@ namespace Ui.Console
         {
             while (true)
             {
-                TryConnectToDb();
+                TryConnectTo(CarsDb);
                 if (!FindId("Enter CarId: ", "Inventory", out _carId)) continue;
-                InventoryObj.DeleteAuto(_carId);
-                InventoryObj.CloseConnection();
+                CarsDb.DeleteAuto(_carId);
+                CarsDb.CloseConnection();
                 PrintOkMessage(string.Format("Car with id {0} deleted", _carId));
                 break;
             }
@@ -187,12 +188,12 @@ namespace Ui.Console
         {
             while (true)
             {
-                TryConnectToDb();
+                TryConnectTo(CarsDb);
                 if (!FindId("Enter CarId: ", "Inventory", out _carId)) continue;
                 System.Console.Write("Enter new PetName: ");
                 _petName = GetNotNullOrEmptyInputText();
-                InventoryObj.UpdateAutoPetName(_carId, _petName);
-                InventoryObj.CloseConnection();
+                CarsDb.UpdateAutoPetName(_carId, _petName);
+                CarsDb.CloseConnection();
                 PrintOkMessage(string.Format("PetName successfully have been updated to '{0}'", _petName));
                 break;
             }
@@ -202,10 +203,10 @@ namespace Ui.Console
         {
             while (true)
             {
-                TryConnectToDb();
+                TryConnectTo(CarsDb);
                 if (!FindId("Enter CarId: ", "Inventory", out _carId)) continue;
-                _petName = InventoryObj.GetPetNameProcedure(_carId);
-                InventoryObj.CloseConnection();
+                _petName = CarsDb.GetPetNameProcedure(_carId);
+                CarsDb.CloseConnection();
                 PrintOkMessage(string.Format("PetName is: '{0}'", _petName));
                 break;
             }
@@ -215,12 +216,12 @@ namespace Ui.Console
         {
             while (true)
             {
-                TryConnectToDb();
+                TryConnectTo(CustomersDb);
                 if (FindId("Enter CustId: ", "Customers", out _custId))
                 {
-                    InventoryObj.ProcessCredirRisk(true, _custId);
+                    CustomersDb.ProcessCredirRisk(true, _custId);
                 }
-                InventoryObj.CloseConnection();
+                CustomersDb.CloseConnection();
                 break;
             }
         }
@@ -230,19 +231,19 @@ namespace Ui.Console
             System.Console.WriteLine(enterMessage);
             var inputText = GetNotNullOrEmptyInputText();
             id = ParseStringToNumber(inputText);
-            if (InventoryObj.IsPresentId(db, id))
+            if (CarsDb.IsPresentId(db, id))
             {
-                return InventoryObj.IsPresentId(db, id);
+                return CarsDb.IsPresentId(db, id);
             }
             PrintErrorText("Can't find");
             return false;
         }
 
-        private static void TryConnectToDb()
+        private static void TryConnectTo(BaseDb baseDb)
         {
             try
             {
-                InventoryObj.OpenConnection(ConnectionString);
+                baseDb.OpenConnection(ConnectionString);
             }
             catch (Exception exception)
             {
@@ -300,12 +301,7 @@ namespace Ui.Console
             System.Console.WriteLine(errorMessage);
             System.Console.ForegroundColor = ConsoleColor.White;
         }
-
-        private static void Exit()
-        {
-            Environment.Exit(0);
-        }
-
+        
         public object[,] GetMainMenuList()
         {
             return MainMenuList;
@@ -319,6 +315,11 @@ namespace Ui.Console
         public object[,] GetCarsMenuList()
         {
             return CarsMenuList;
+        }
+
+        private static void Exit()
+        {
+            Environment.Exit(0);
         }
     }
 }
