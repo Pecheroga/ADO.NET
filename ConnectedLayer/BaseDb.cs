@@ -15,7 +15,10 @@ namespace ConnectedLayer
 
         public void CloseConnection()
         {
-            Connection.Close();
+            if (Connection.State == ConnectionState.Open)
+            {
+                Connection.Close();    
+            }
         }
 
         public bool IsPresentId(string tableDb, int id)

@@ -4,8 +4,8 @@ using ConnectedLayer;
 
 namespace Ui.Console
 {
-    public delegate void LinkToMethod();
-
+    public delegate void MenuLinkToMethod();
+    
     public class Program
     {
         private static object[,] _activeMenuList;
@@ -18,11 +18,20 @@ namespace Ui.Console
         private static int _carId, _custId;
         private static string _name, _color, _make, _petName;
         private static DataTable _dataTable;
-
+        private static readonly ConsoleColor MainForegroungColor;
+        private static readonly ConsoleColor ActiveMenuTitleColor;
+        private static readonly ConsoleColor OkForegroungColor;
+        private static readonly ConsoleColor ErrorForegroungColor;
+        
         static Program()
         {
-            System.Console.ForegroundColor = ConsoleColor.White;
-            ConnectionString = "Data Source=(local)\\SQLEXPRESS;Initial Catalog=AutoLot;Integrated Security=True;Pooling=False";
+            MainForegroungColor = ConsoleColor.White;
+            ActiveMenuTitleColor = ConsoleColor.Yellow;
+            OkForegroungColor = ConsoleColor.Green;
+            ErrorForegroungColor = ConsoleColor.Red;
+            System.Console.ForegroundColor = MainForegroungColor;
+            ConnectionString = 
+                "Data Source=(local)\\SQLEXPRESS;Initial Catalog=AutoLot;Integrated Security=True;Pooling=False";
             CarsDb = new CarsDb();
             CustomersDb = new CustomersDb();
 
@@ -31,73 +40,101 @@ namespace Ui.Console
             CarsMenuList = new object[6, 3];
 
             MainMenuList[0, 0] = "Customers";
-            MainMenuList[0, 1] = new LinkToMethod(PrintMenu);
+            MainMenuList[0, 1] = new MenuLinkToMethod(PrintMenu);
             MainMenuList[0, 2] = CustomersMenuList;
             MainMenuList[1, 0] = "Cars";
-            MainMenuList[1, 1] = new LinkToMethod(PrintMenu);
+            MainMenuList[1, 1] = new MenuLinkToMethod(PrintMenu);
             MainMenuList[1, 2] = CarsMenuList;
             MainMenuList[2, 0] = "Exit";
-            MainMenuList[2, 1] = new LinkToMethod(Exit);
+            MainMenuList[2, 1] = new MenuLinkToMethod(Exit);
 
             CustomersMenuList[0, 0] = "Show Customers";
-            CustomersMenuList[0, 1] = new LinkToMethod(ShowCustomers);
+            CustomersMenuList[0, 1] = new MenuLinkToMethod(ShowCustomers);
             CustomersMenuList[1, 0] = "Add to risk category";
-            CustomersMenuList[1, 1] = new LinkToMethod(AddToRisks);
+            CustomersMenuList[1, 1] = new MenuLinkToMethod(AddToRisks);
             CustomersMenuList[2, 0] = "Back";
-            CustomersMenuList[2, 1] = new LinkToMethod(PrintMenu);
+            CustomersMenuList[2, 1] = new MenuLinkToMethod(PrintMenu);
             CustomersMenuList[2, 2] = MainMenuList;
 
-            CarsMenuList[0, 0] = "Inventory";
-            CarsMenuList[0, 1] = new LinkToMethod(ShowInventory);
+            CarsMenuList[0, 0] = "Show Cars";
+            CarsMenuList[0, 1] = new MenuLinkToMethod(ShowCars);
             CarsMenuList[1, 0] = "Insert Auto";
-            CarsMenuList[1, 1] = new LinkToMethod(InsertAuto);
+            CarsMenuList[1, 1] = new MenuLinkToMethod(InsertAuto);
             CarsMenuList[2, 0] = "Delete Auto";
-            CarsMenuList[2, 1] = new LinkToMethod(DeleteAuto);
+            CarsMenuList[2, 1] = new MenuLinkToMethod(DeleteAuto);
             CarsMenuList[3, 0] = "Update auto PetName";
-            CarsMenuList[3, 1] = new LinkToMethod(UpdateAutoPetName);
+            CarsMenuList[3, 1] = new MenuLinkToMethod(UpdateAutoPetName);
             CarsMenuList[4, 0] = "Get PetName by CarId";
-            CarsMenuList[4, 1] = new LinkToMethod(GetPetNameByCarId);
+            CarsMenuList[4, 1] = new MenuLinkToMethod(GetPetNameByCarId);
             CarsMenuList[5, 0] = "Back";
-            CarsMenuList[5, 1] = new LinkToMethod(PrintMenu);
+            CarsMenuList[5, 1] = new MenuLinkToMethod(PrintMenu);
             CarsMenuList[5, 2] = MainMenuList;
-
-            _activeMenuList = MainMenuList;
         }
 
-        private static void Main()
+        public static void Main(string[] args)
         {
+            string activeMenuListName;
+            try
+            {
+                activeMenuListName = args[0];
+            }
+            catch (Exception)
+            {
+                activeMenuListName = string.Empty;
+            }
+            
+            switch (activeMenuListName)
+            {
+                case "MainMenu":
+                    _activeMenuList = MainMenuList;
+                    break;
+                case "Customers":
+                    _activeMenuList = CustomersMenuList;
+                    break;
+                case "Cars":
+                    _activeMenuList = CarsMenuList;
+                    break;
+                default:
+                    _activeMenuList = MainMenuList;
+                    break;
+            }
             PrintMenu();
         }
 
         private static void PrintMenu()
         {
-            for (var menuIndex = 1; menuIndex <= _activeMenuList.GetLength(0); menuIndex++)
+            while (true)
             {
-                var menuName = _activeMenuList[menuIndex - 1, 0];
-                System.Console.WriteLine(menuIndex + ". " + menuName);
-            }
-
-            var inputText = GetNotNullOrEmptyInputText();
-            var choosenMenuNumber = ParseStringToNumber(inputText);
-
-            for (var menuIndex = 1; menuIndex <= _activeMenuList.GetLength(0); menuIndex++)
-            {
-                if (choosenMenuNumber != menuIndex) continue;
-                var method = (LinkToMethod)_activeMenuList[menuIndex - 1, 1];
-                if (_activeMenuList[menuIndex - 1, 2] != null)
+                for (var menuIndex = 1; menuIndex <= _activeMenuList.GetLength(0); menuIndex++)
                 {
-                    System.Console.Clear();
-                    _activeMenuList = (object[,])_activeMenuList[menuIndex - 1, 2];
+                    var menuName = _activeMenuList[menuIndex - 1, 0];
+                    System.Console.WriteLine(menuIndex + ". " + menuName);
                 }
-                else
+
+                var enteredText = GetNotNullOrEmptyInputText();
+                var choosenMenuNumber = ParseStringToNumber(enteredText);
+
+                for (var menuIndex = 1; menuIndex <= _activeMenuList.GetLength(0); menuIndex++)
                 {
+                    if (choosenMenuNumber != menuIndex) continue;
+                    var nextMenuLink = (MenuLinkToMethod) _activeMenuList[menuIndex - 1, 1];
+                    var nextActiveMenuList = _activeMenuList[menuIndex - 1, 2];
+                    if (nextActiveMenuList != null)
+                    {
+                        System.Console.Clear();
+                        _activeMenuList = (object[,]) nextActiveMenuList;
+                    }
+                    else
+                    {
+                        System.Console.WriteLine();
+                        var activeMenuTitle = _activeMenuList[menuIndex - 1, 0].ToString();
+                        PrintColored(activeMenuTitle, ActiveMenuTitleColor);
+                    }
+                    nextMenuLink.DynamicInvoke();
                     System.Console.WriteLine();
-                    PrintMenuTitle(_activeMenuList[menuIndex - 1, 0].ToString());
                 }
-                method.DynamicInvoke();
-                System.Console.WriteLine();
-                PrintMenu();
             }
+            // ReSharper disable once FunctionNeverReturns
         }
 
         private static void ShowCustomers()
@@ -108,7 +145,7 @@ namespace Ui.Console
             CustomersDb.CloseConnection();
         }
 
-        private static void ShowInventory()
+        private static void ShowCars()
         {
             TryConnectTo(CarsDb);
             TryLoadAllToDataTableFrom(CarsDb, "Inventory");
@@ -148,11 +185,12 @@ namespace Ui.Console
             {
                 TryConnectTo(CarsDb);
                 System.Console.WriteLine("Enter new CarId: ");
-                var inputText = GetNotNullOrEmptyInputText();
-                _carId = ParseStringToNumber(inputText);
+                var enteredText = GetNotNullOrEmptyInputText();
+                _carId = ParseStringToNumber(enteredText);
                 if (CarsDb.IsPresentId("Inventory", _carId))
                 {
-                    PrintErrorText("This id is using. Try again");
+                    const string errorMessage = "This id is using. Try again";
+                    PrintColored(errorMessage, ErrorForegroungColor);
                     continue;
                 }
                 System.Console.WriteLine("Enter new Name: ");
@@ -166,7 +204,8 @@ namespace Ui.Console
 
                 CarsDb.InsertAuto(_carId, _name, _color, _make, _petName);
                 CarsDb.CloseConnection();
-                PrintOkMessage("You have add new car!");
+                const string okMessage = "You have add new car!";
+                PrintColored(okMessage, OkForegroungColor);
                 break;
             }
         }
@@ -179,7 +218,8 @@ namespace Ui.Console
                 if (!FindId("Enter CarId: ", "Inventory", out _carId)) continue;
                 CarsDb.DeleteAuto(_carId);
                 CarsDb.CloseConnection();
-                PrintOkMessage(string.Format("Car with id {0} deleted", _carId));
+                var okMessage = string.Format("Car with id {0} deleted", _carId);
+                PrintColored(okMessage, OkForegroungColor);
                 break;
             }
         }
@@ -194,7 +234,8 @@ namespace Ui.Console
                 _petName = GetNotNullOrEmptyInputText();
                 CarsDb.UpdateAutoPetName(_carId, _petName);
                 CarsDb.CloseConnection();
-                PrintOkMessage(string.Format("PetName successfully have been updated to '{0}'", _petName));
+                var okMessage = string.Format("PetName successfully have been updated to '{0}'", _petName);
+                PrintColored(okMessage, OkForegroungColor);
                 break;
             }
         }
@@ -207,7 +248,8 @@ namespace Ui.Console
                 if (!FindId("Enter CarId: ", "Inventory", out _carId)) continue;
                 _petName = CarsDb.GetPetNameProcedure(_carId);
                 CarsDb.CloseConnection();
-                PrintOkMessage(string.Format("PetName is: '{0}'", _petName));
+                var okMessage = string.Format("PetName is: '{0}'", _petName);
+                PrintColored(okMessage, OkForegroungColor);
                 break;
             }
         }
@@ -229,13 +271,14 @@ namespace Ui.Console
         private static bool FindId(string enterMessage, string db, out int id)
         {
             System.Console.WriteLine(enterMessage);
-            var inputText = GetNotNullOrEmptyInputText();
-            id = ParseStringToNumber(inputText);
+            var enteredText = GetNotNullOrEmptyInputText();
+            id = ParseStringToNumber(enteredText);
             if (CarsDb.IsPresentId(db, id))
             {
                 return CarsDb.IsPresentId(db, id);
             }
-            PrintErrorText("Can't find");
+            const string errorMessage = "Can't find";
+            PrintColored(errorMessage, ErrorForegroungColor);
             return false;
         }
 
@@ -254,52 +297,41 @@ namespace Ui.Console
         private static string GetNotNullOrEmptyInputText()
         {
             System.Console.Write(">");
-            var inputText = System.Console.ReadLine();
-            if (!string.IsNullOrEmpty(inputText)) return inputText;
-            PrintErrorText("Can not be empty");
-            inputText = GetNotNullOrEmptyInputText();
-            return inputText;
+            var enteredText = System.Console.ReadLine();
+            if (!string.IsNullOrEmpty(enteredText)) return enteredText;
+            const string errorMessage = "Can not be empty";
+            PrintColored(errorMessage, ErrorForegroungColor);
+            enteredText = GetNotNullOrEmptyInputText();
+            return enteredText;
         }
 
-        private static int ParseStringToNumber(string inputText)
+        private static int ParseStringToNumber(string enteredText)
         {
             try
             {
-                return int.Parse(inputText);
+                return int.Parse(enteredText);
             }
             catch (Exception)
             {
-                PrintErrorText("Input value must be a number");
-                inputText = GetNotNullOrEmptyInputText();
-                return ParseStringToNumber(inputText);
+                const string errorMessage = "Input value must be a number";
+                PrintColored(errorMessage, ErrorForegroungColor);
+                enteredText = GetNotNullOrEmptyInputText();
+                return ParseStringToNumber(enteredText);
             }
-        }
-
-        private static void PrintMenuTitle(string menuTitle)
-        {
-            System.Console.ForegroundColor = ConsoleColor.Yellow;
-            System.Console.WriteLine(menuTitle);
-            System.Console.ForegroundColor = ConsoleColor.White;
-        }
-
-        private static void PrintOkMessage(string okMessage)
-        {
-            System.Console.ForegroundColor = ConsoleColor.Green;
-            System.Console.WriteLine(okMessage);
-            System.Console.ForegroundColor = ConsoleColor.White;
         }
 
         private static void ReturnWhenException(Exception exception)
         {
-            PrintErrorText("Somthing wrong. Message: \n" + exception.Message + "\n");
+            var errorMessage = "Somthing wrong. Message: \n" + exception.Message + "\n";
+            PrintColored(errorMessage, ErrorForegroungColor);
             PrintMenu();
         }
 
-        private static void PrintErrorText(string errorMessage)
+        private static void PrintColored(string message, ConsoleColor newForegrounColor)
         {
-            System.Console.ForegroundColor = ConsoleColor.Red;
-            System.Console.WriteLine(errorMessage);
-            System.Console.ForegroundColor = ConsoleColor.White;
+            System.Console.ForegroundColor = newForegrounColor;
+            System.Console.WriteLine(message);
+            System.Console.ForegroundColor = MainForegroungColor;
         }
         
         public object[,] GetMainMenuList()
