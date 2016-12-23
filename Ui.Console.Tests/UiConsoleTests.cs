@@ -11,7 +11,20 @@ namespace Ui.Console.Tests
     {
         private Process _consoleProcess;
         private int _processId;
-       
+        private const string
+            EntryTextCursorLine = ">",
+            CanNotBeEmptyLine = "Can not be empty",
+            InputValueMustBeNumberLine = "Input value must be a number",
+            IdIsUsingLine = "This id is using. Try again",
+            MainMenuCustomersLine = "1",
+            MainMenuCarsLine = "2",
+            MainMenuExitLine = "3",
+            CarMenuInsertAutoLine = "2",
+            CarMenuDeleteAutoLine = "3",
+            ToNextInput = "\n",
+            NewCarId = "0",
+            TestStringValue = "Test";
+
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
@@ -51,29 +64,22 @@ namespace Ui.Console.Tests
                                 "Expected: {0} \n Printed: {1} ", readLineFormClass, readLineFromProcess);
                 }
             }
-            Assert.IsTrue(true);
+            Assert.Pass();
         }
 
         [Test, Sequential]
         public void GoToNewMenuSection(
-            [Values("Show Customers", "Show Cars")] string expectedFirstMenuItem,
-            [Values("1", "2")] string menuNumber)
+            [Values("1. Show Customers", "1. Show Cars")] string expectedFirstMenuItem,
+            [Values(MainMenuCustomersLine, MainMenuCarsLine)] string menuNumber)
         {
             const string menuListName = "MainMenu";
             StartUiConsoleProcess(menuListName);
-            using (var streamReader = _consoleProcess.StandardInput)
+            using (var streamWriter = _consoleProcess.StandardInput)
             {
-                streamReader.WriteLine(menuNumber);
+                streamWriter.WriteLine(menuNumber);
             }
-            const string expectedLine = ">";
-            try
-            {
-                CompareReadLineFromProcessWith(expectedLine);
-            }
-            catch (Exception exception)
-            {
-                Assert.Fail(exception.Message);
-            }
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(EntryTextCursorLine));
+            
             var firstPrintedMenuItem = _consoleProcess.StandardOutput.ReadLine();
             Assert.AreEqual(expectedFirstMenuItem, firstPrintedMenuItem);
         }
@@ -85,7 +91,7 @@ namespace Ui.Console.Tests
             StartUiConsoleProcess(menuListName);
             using (var streamWriter = _consoleProcess.StandardInput)
             {
-                streamWriter.WriteLine("3");
+                streamWriter.WriteLine(MainMenuExitLine);
             }
            
             if (_consoleProcess.WaitForExit(1000))
@@ -106,8 +112,7 @@ namespace Ui.Console.Tests
             StartUiConsoleProcess(menuListName);
             _consoleProcess.StandardInput.Close();
 
-            const string expectedLine = "Can not be empty";
-            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(expectedLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
         }
 
         [Test]
@@ -121,8 +126,7 @@ namespace Ui.Console.Tests
                 streamWriter.WriteLine(inputText);
             }
 
-            const string expectedLine = "Input value must be a number";
-            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(expectedLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(InputValueMustBeNumberLine));
         }
 
         [Test, Sequential]
@@ -136,8 +140,7 @@ namespace Ui.Console.Tests
                 streamWriter.WriteLine("1");
             }
             
-            const string expectedLine = ">";
-            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(expectedLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(EntryTextCursorLine));
 
             var printedMenuName = _consoleProcess.StandardOutput.ReadLine();
             Assert.AreEqual(expectedPrintedMenuName, printedMenuName);
@@ -146,7 +149,7 @@ namespace Ui.Console.Tests
         [Test, Sequential]
         public void FirstPrintedColumnIsId(
             [Values("Customers", "Cars")] string menuListName,
-            [Values("Show Customers", "Show Cars")] string expectedPrinedMenuName)
+            [Values("Show Customers", "Show Cars")] string expectedPrintedMenuName)
         {
             StartUiConsoleProcess(menuListName);
             using (var streamWriter = _consoleProcess.StandardInput)
@@ -157,10 +160,9 @@ namespace Ui.Console.Tests
             do
             {
                 readLineFromProcess = _consoleProcess.StandardOutput.ReadLine();
-            } while (readLineFromProcess != expectedPrinedMenuName);
+            } while (readLineFromProcess != expectedPrintedMenuName);
 
             var firstPrintedDataRow = _consoleProcess.StandardOutput.ReadLine();
-
             if (firstPrintedDataRow == null) return;
             var firstWhiteSpaceIndex = firstPrintedDataRow.IndexOf(" ", StringComparison.Ordinal);
             var idColumn = firstPrintedDataRow.Remove(firstWhiteSpaceIndex);
@@ -171,7 +173,7 @@ namespace Ui.Console.Tests
         [Test, Sequential]
         public void CountOfPrintedDataColumn(
             [Values("Customers", "Cars")] string menuListName,
-            [Values("Show Customers", "Show Cars")] string expectedPrinedMenuName,
+            [Values("Show Customers", "Show Cars")] string expectedPrintedMenuName,
             [Values(2, 4)] int expectedWhiteSpaceCount)
         {
             StartUiConsoleProcess(menuListName);
@@ -183,12 +185,59 @@ namespace Ui.Console.Tests
             do
             {
                 readLineFromProcess = _consoleProcess.StandardOutput.ReadLine();
-            } while (readLineFromProcess != expectedPrinedMenuName);
+            } while (readLineFromProcess != expectedPrintedMenuName);
 
              var firstPrintedDataRow = _consoleProcess.StandardOutput.ReadLine();
             if (firstPrintedDataRow == null) return;
             var whiteSpaceCount = firstPrintedDataRow.Count(char.IsWhiteSpace);
             Assert.IsTrue(whiteSpaceCount >= expectedWhiteSpaceCount, "Count of the columns is less than expected");
+        }
+
+        [Test]
+        public void AddDeleteNewAuto()
+        {
+            CarIdIsUsing();
+            const string menuListName = "Cars";
+            StartUiConsoleProcess(menuListName);
+            using (var streamWriter = _consoleProcess.StandardInput)
+            {
+                streamWriter.WriteLine(
+                    CarMenuInsertAutoLine + 
+                    ToNextInput + TestStringValue + 
+                    ToNextInput + ToNextInput + NewCarId + 
+                    ToNextInput + ToNextInput + TestStringValue + 
+                    ToNextInput + ToNextInput + TestStringValue + 
+                    ToNextInput + ToNextInput + TestStringValue + 
+                    ToNextInput + ToNextInput + TestStringValue + 
+                    ToNextInput + CarMenuDeleteAutoLine + 
+                    ToNextInput +  TestStringValue + ToNextInput + 
+                    ToNextInput + NewCarId);
+            }
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(InputValueMustBeNumberLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(InputValueMustBeNumberLine));
+            Assert.DoesNotThrow(() => CompareReadLineFromProcessWith(CanNotBeEmptyLine));
+        }
+
+        public void CarIdIsUsing()
+        {
+            const string menuListName = "Cars";
+            StartUiConsoleProcess(menuListName);
+            using (var streamWriter = _consoleProcess.StandardInput)
+            {
+                //streamWriter.WriteLine("2\n0");
+                streamWriter.WriteLine(CarMenuInsertAutoLine + ToNextInput + NewCarId);
+            }
+            const string stopLine = ">Enter new Name: ";
+            Assert.Throws(
+                Is.TypeOf<Exception>(),
+                () => CompareReadLineFromProcessWith(IdIsUsingLine, stopLine),
+                "Try to run test with another Id");
+            StopUiConsoleProcess();
         }
         
         [Test]
@@ -201,41 +250,48 @@ namespace Ui.Console.Tests
                 var menuItemName = menuListFromClass[index, 0] as string;
                 Assert.IsNotNull(
                     menuItemName, 
-                    "Menu item name is not the type of string");
+                    "Menu item name is not the type of string.");
                 var menuItemLink = menuListFromClass[index, 1] as MenuLinkToMethod;
                 Assert.IsNotNull(
                     menuItemLink, 
-                    "Menu item link is not the type of delegate MenuLinkToMethod");
+                    "Menu item link is not the type of delegate MenuLinkToMethod.");
                 var menuItemLinkNextList = menuListFromClass[index, 2];
                 if (menuItemLinkNextList == null) continue;
                 menuItemLinkNextList = menuItemLinkNextList as object[,];
                 Assert.IsNotNull(
                     menuItemLinkNextList, 
-                    "Menu item Link To Next Menu List is not the type of object[,]");
+                    "Menu item Link To Next Menu List is not the type of object[,].");
             }
         }
 
-        private void CompareReadLineFromProcessWith(string expectedLine)
+        private void CompareReadLineFromProcessWith(string expectedLine, string stopLine = null)
         {
+            var streamReader = _consoleProcess.StandardOutput;
             string prevTextFromProcess, readLineFromProcess = string.Empty;
             do
             {
                 prevTextFromProcess = readLineFromProcess;
-                readLineFromProcess = _consoleProcess.StandardOutput.ReadLine();
+                readLineFromProcess = streamReader.ReadLine();
             } while (
-                readLineFromProcess != null
-                && readLineFromProcess != prevTextFromProcess
-                && !readLineFromProcess.Contains(expectedLine));
-            
+                readLineFromProcess != null &&
+                readLineFromProcess != prevTextFromProcess && 
+                !readLineFromProcess.Contains(expectedLine) &&
+                readLineFromProcess != stopLine);
+
             if (readLineFromProcess == null)
             {
-                throw new Exception("Process was closed. Possibly exception was throwed in process");
+                throw new Exception("Process was closed. Possibly exception was throwed in process.");
             }
             if (readLineFromProcess == prevTextFromProcess)
             {
-                throw new Exception("Loop is present, when reading from output. \n" +
-                            "Looks like the \"" + expectedLine + "\" string is not found. \n" +
-                            "Somthing wrong with it.");
+                throw new Exception(
+                    "Loop is present, when reading from output. \n" +
+                    "Looks like the \"" + expectedLine + "\" string is not found. \n" +
+                    "Somthing wrong with it.");
+            }
+            if (readLineFromProcess == stopLine)
+            {
+                throw new Exception("Reading from the process has reached the stop line");
             }
         }
 
@@ -274,12 +330,11 @@ namespace Ui.Console.Tests
             _consoleProcess.Start();
             _processId = _consoleProcess.Id;
         }
-
+        
         private void StopUiConsoleProcess()
         {
             try
             {
-                
                 var consoleProcessById = Process.GetProcessById(_processId);
                 if (consoleProcessById.HasExited) return;
                 consoleProcessById.Kill();

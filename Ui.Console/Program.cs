@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using System.IO;
 using ConnectedLayer;
 
 namespace Ui.Console
@@ -121,7 +122,7 @@ namespace Ui.Console
                     var nextActiveMenuList = _activeMenuList[menuIndex - 1, 2];
                     if (nextActiveMenuList != null)
                     {
-                        System.Console.Clear();
+                        TryClearConsole();
                         _activeMenuList = (object[,]) nextActiveMenuList;
                     }
                     else
@@ -135,6 +136,18 @@ namespace Ui.Console
                 }
             }
             // ReSharper disable once FunctionNeverReturns
+        }
+
+        private static void TryClearConsole()
+        {
+            try
+            {
+                System.Console.Clear();
+            }
+            catch (IOException)
+            {
+                System.Console.WriteLine("Cannot clear console. Output is redirecting");
+            }
         }
 
         private static void ShowCustomers()
